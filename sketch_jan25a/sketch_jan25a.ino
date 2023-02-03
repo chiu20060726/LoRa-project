@@ -75,6 +75,7 @@ void loop() {
               ResponseStatus rs = e22ttl.sendBroadcastFixedMessage(70, last_msg);
               Serial.println(rs.getResponseDescription());
               delay(1000);
+              client.print("自動SOS已開啟，若要取消請重開板子(按EN或重新接電源線)");
             }
           }
           float h = dht.readHumidity();
@@ -95,12 +96,13 @@ void loop() {
     //Serial.println(rc.status.getResponseDescription());
     String d=rc.data;
     Serial.println(d);
-    if(d[0]=='*'){
+    if(d[3]=='#'){
       rb();
-     client.print("server: "+d);
-    }else{
-      white();
-      }
+     client.print("server: "+d.substring(4,d.length()));
+    }else if(d[3]=='!'){
+      client.print("請幫助此SOS呼叫!!! 撥打112or911並提交接收到資料已進行救援! \n PLEASE HELP THIS SOS CALL!!! CALL 112or911AND SUBMIT RECEIVED DATA TO RESCUE! \n 或請聯繫最近可以提供救援服務的單位!!!(嘗試撥打112,911或衛星電話!");
+      client.print(d.substring(4,d.length()));
+    }
 #ifdef ENABLE_RSSI
     Serial.print("RSSI: "); Serial.println(rc.rssi, DEC);
 #endif
@@ -122,19 +124,21 @@ void loop() {
               rb();
                 String c = client.readString(); 
                 
-                if(c[1]!='?'){
-                  client.print("user: " + c.substring(1,c.length())); 
-                }else if(c[1]=='?'){
+                if(c[0]=='?'){
                   client.print("溫度: "+ String(t) +"°C，濕度: "+ String(h) +"%"); 
-                }
-                if(c[1]=='S'&&c[2]=='O'&&c[3]=='S'){
+                }else if(c[0]=='S'&&c[1]=='O'&&c[2]=='S'){
                   sos_count++;
+                  ResponseStatus rs = e22ttl.sendBroadcastFixedMessage(70,"!"+ c);
+                  Serial.println(rs.getResponseDescription());
+                  client.print(c);
+                  last_msg="!"+c;
+                }else{
+                  Serial.println(c); 
+                  last_msg=c;
+                  ResponseStatus rs = e22ttl.sendBroadcastFixedMessage(70,"#"+ c);
+                  client.print(c);
+                  Serial.println(rs.getResponseDescription());
                 }
-                Serial.println("user: " + c); 
-                last_msg=c;
-                ResponseStatus rs = e22ttl.sendBroadcastFixedMessage(70, c);
-                Serial.println(rs.getResponseDescription());
-                
             }
             green();
         }
